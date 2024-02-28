@@ -7,6 +7,15 @@ import sys
 import sqlite3
 
 
+class DatabaseConnection:
+    def  __init__(self, database_file = "D:\Student_ManagementSystem_UsingPyQt\database.db"):
+        self.database_file = database_file
+
+    def connect(self):
+        connection = sqlite3.connect(self.database_file)
+        return  connection
+
+
 class MainWindow(QMainWindow):
     """QMainWindow allows us to add a menu bar and tool bars and a status bar
  And QMainWindow is the class that allows us to do this division between, among
@@ -80,7 +89,7 @@ class MainWindow(QMainWindow):
     def load_data(self):
 
         """Laoding data from the  database into our table"""
-        connection = sqlite3.connect("D:\Student_ManagementSystem_UsingPyQt\database.db")
+        connection = DatabaseConnection().connect()
         result = connection.execute("SELECT * FROM students")
         # This allow whenever we laod the program or do something these data will not be added on top of the existing data
         self.table.setRowCount(0)
@@ -202,7 +211,7 @@ class EditDialog(QDialog):
 
     def update_StudentData(self):
         """This function is used to update the student data"""
-        connection = sqlite3.connect("D:\Student_ManagementSystem_UsingPyQt\database.db")
+        connection = DatabaseConnection().connect()
         cursor = connection.cursor()
         cursor.execute("UPDATE students SET name = ?, course = ?, mobile = ?, age = ?, \
                        gender = ?, address = ? WHERE id = ?", 
@@ -246,7 +255,7 @@ class DeleteDialog(QDialog):
         #Getting index and id from selected row
         index = main_window.table.currentRow()
         student_id = main_window.table.item(index, 0).text()
-        connection = sqlite3.connect('D:/Student_ManagementSystem_UsingPyQt/database.db')
+        connection = DatabaseConnection().connect()
         cursor = connection.cursor()
         cursor.execute("DELETE from students WHERE id = ?", (student_id, ))
         connection.commit()
@@ -324,7 +333,7 @@ class InsertDialog(QDialog):
         age = self.age.text().strip()
         gender = self.gender.itemText(self.gender.currentIndex())
         address = self.address.text().strip()
-        connection = sqlite3.connect("D:\Student_ManagementSystem_UsingPyQt\database.db")
+        connection = DatabaseConnection().connect()
         cursor = connection.cursor()
         cursor.execute("INSERT INTO students (name, course, mobile, age, gender, address) VALUES (?, ?, ?, ?, ?, ?)",
                        (name, course, mobile, age, gender, address))
@@ -359,7 +368,7 @@ class SearchDialog(QDialog):
 
     def show_result(self):
         name = self.searchLabel.text()
-        connection = sqlite3.connect('D:/Student_ManagementSystem_UsingPyQt/database.db')
+        connection = DatabaseConnection().connect()
         cursor = connection.cursor()
         result = cursor.execute("SELECT * FROM students WHERE name = ?", (name,)).fetchall()
         rows = list(result)
