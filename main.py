@@ -1,7 +1,7 @@
 from PyQt6.QtCore import  Qt
 from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QGridLayout, \
      QLineEdit, QPushButton, QMainWindow, QTableWidget, QTableWidgetItem, \
-     QDialog, QVBoxLayout, QComboBox, QToolBar, QStatusBar
+     QDialog, QVBoxLayout, QComboBox, QToolBar, QStatusBar, QMessageBox
 from PyQt6.QtGui import QAction, QIcon
 import sys
 import sqlite3
@@ -33,6 +33,7 @@ class MainWindow(QMainWindow):
         help_menu_item.addAction(about_action)
         #If help menu not showing
         # about_action.setMenuRole(QAction.MenuRole.NoRole)
+        about_action.triggered.connect(self.about)
 
         #Adding the submenu item in "Edit" menu
         find_students_action = QAction(QIcon("D:\Student_ManagementSystem_UsingPyQt\icons\search.png"), 'Search', self)
@@ -110,6 +111,29 @@ class MainWindow(QMainWindow):
         dialog = DeleteDialog()
         dialog.exec()
 
+    def about(self):
+        """Displaying About Window"""
+        dialog = AboutDialog()
+        dialog.exec()
+
+
+
+class AboutDialog(QMessageBox):
+    """About Dialog Class"""
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("About")
+        content = """
+Hello ! This is a simple database management system developed using PyQt6 and SQLite3.  
+The main purpose of this application is to demonstrate how you can use SQL with Python  
+to perform basic operations such as adding, editing, deleting records from a database.  
+You are free to modify and distribute it according to your needs.  
+If you have any questions or suggestions, please feel free to contact me at:   
+suryaprakashsharma453@gmail.com
+"""
+        self.setText(content)
+
+
 class EditDialog(QDialog):
     """docstring for EditDialog"""
     def __init__(self):
@@ -135,7 +159,7 @@ class EditDialog(QDialog):
         #Adding course name widget 
         course_n = main_window.table.item(index, 2).text()
         self.course_name = QComboBox()
-        self.course_name.setPlaceholderText("ChooseCourse")
+        #self.course_name.setPlaceholderText("ChooseCourse")
         courses = ["Biology", "Physics", "Mathematics", "Computer Science", "Astronomy", "Economy", \
                    "Political Science", "Sociology", "History", "Geography", "French", "Spanish", \
                    "Chemistry", "DSA", "English", "Cloud Computing", "Artificial Intelligence", \
@@ -158,9 +182,8 @@ class EditDialog(QDialog):
 
         gend = main_window.table.item(index, 5).text()
         self.gender = QComboBox()
-        self.gender.setPlaceholderText( "Gender")
-        genders = ['M', 'F']
-        self.gender.addItems(genders)
+        #self.gender.setPlaceholderText( "Gender")
+        self.gender.addItems(['M', 'F'])
         self.gender.setCurrentText(gend)
         layout.addWidget(self.gender)
 
@@ -179,17 +202,14 @@ class EditDialog(QDialog):
 
     def update_StudentData(self):
         """This function is used to update the student data"""
-        name = self.Student_name.text().strip()
-        course = self.course_name.itemText(self.course_name.currentIndex()).capitalize()
-        mobile = self.mobile_number.text().strip()
-        age = self.age.text().strip()
-        gender = self.gender.itemText(self.course_name.currentIndex())
-        address = self.address.text().strip()
-        id = self.student_id
         connection = sqlite3.connect("D:\Student_ManagementSystem_UsingPyQt\database.db")
         cursor = connection.cursor()
         cursor.execute("UPDATE students SET name = ?, course = ?, mobile = ?, age = ?, \
-                       gender = ?, address = ? WHERE id = ?", (name, course, mobile, age, gender, address, id))
+                       gender = ?, address = ? WHERE id = ?", 
+                       (self.Student_name.text(), self.course_name.itemText(self.course_name.currentIndex()), 
+                        self.mobile_number.text(), self.age.text(), 
+                        self.gender.itemText(self.gender.currentIndex()), 
+                        self.address.text(), self.student_id))
         connection.commit()
         cursor.close()
         connection.close()
@@ -197,12 +217,51 @@ class EditDialog(QDialog):
         #Refreshing the table
         main_window.load_data()
 
+        self.close()
+
 
 class DeleteDialog(QDialog):
     """docstring for DeleteDialog"""
     def __init__(self):
         super().__init__()
-        pass
+        self.setWindowTitle("Delete Student Details")
+
+        layout = QGridLayout()
+
+        confirmation = QLabel("Are you sure you want to delete?")
+        yes = QPushButton("Yes")
+        no = QPushButton("No")
+
+        layout.addWidget(confirmation, 0, 0, 1, 2) 
+        layout.addWidget(yes, 1, 0)
+        layout.addWidget(no,  1, 1)
+
+        self.setLayout(layout)
+
+        yes.clicked.connect(self.delete_student)
+        no.clicked.connect(self.reject)
+
+    def delete_student(self):
+        """This method deletes a record from database."""
+        #Getting index and id from selected row
+        index = main_window.table.currentRow()
+        student_id = main_window.table.item(index, 0).text()
+        connection = sqlite3.connect('D:/Student_ManagementSystem_UsingPyQt/database.db')
+        cursor = connection.cursor()
+        cursor.execute("DELETE from students WHERE id = ?", (student_id, ))
+        connection.commit()
+        cursor.close()
+        connection.close()
+
+        #Removing the deleted data from TableView
+        main_window.load_data()
+
+        self.close()
+
+        confirmation_widget = QMessageBox()
+        confirmation_widget.setWindowTitle("Success")
+        confirmation_widget.setText("Record Deleted Successfully!")
+        confirmation_widget.exec()
 
 
 class InsertDialog(QDialog):
@@ -242,7 +301,8 @@ class InsertDialog(QDialog):
 
         self.gender = QComboBox()
         self.gender.setPlaceholderText( "Gender")
-        self.gender.addItems(['M', 'F'])
+        gender_list = ['M', 'F']
+        self.gender.addItems(gender_list)
         layout.addWidget(self.gender)
 
         self.address = QLineEdit()
@@ -262,7 +322,7 @@ class InsertDialog(QDialog):
         course = self.course_name.itemText(self.course_name.currentIndex()).capitalize()
         mobile = self.mobile_number.text().strip()
         age = self.age.text().strip()
-        gender = self.gender.itemText(self.course_name.currentIndex())
+        gender = self.gender.itemText(self.gender.currentIndex())
         address = self.address.text().strip()
         connection = sqlite3.connect("D:\Student_ManagementSystem_UsingPyQt\database.db")
         cursor = connection.cursor()
@@ -272,6 +332,8 @@ class InsertDialog(QDialog):
         cursor.close()
         connection.close()
         main_window.load_data()
+
+        self.close()
 
 
 class SearchDialog(QDialog):
@@ -310,6 +372,8 @@ class SearchDialog(QDialog):
 
         cursor.close()
         connection.close()
+
+        self.close()
 
 
 app = QApplication(sys.argv)
